@@ -2,6 +2,7 @@
 
 require('dotenv').config()
 
+const fs = require('fs')
 const express = require('express')
 const app = express()
 const bodyParser = require('body-parser');
@@ -15,16 +16,26 @@ const serverPort = process.env.serverPort || 3000
 
 app.post('/loginIut', (req, res) => {
   res.setHeader('Content-Type', 'application/json')
-  if (req.method === 'POST'
-    && req.body.hasOwnProperty('username')
-    && req.body.hasOwnProperty('password'))
-    {
+  if (req.body.hasOwnProperty('username') && req.body.hasOwnProperty('password')) {
     fn.checkMoodleAccount(req.body.username, req.body.password)
       .then(result => res.send(JSON.stringify(result)))
       .catch(err => {
         console.error(err)
         res.send(JSON.stringify({success: false}))
       })
+  }
+  else res.send(JSON.stringify({success: false}))
+})
+
+app.get('/getDiscord', (req, res) => {
+  // res.setHeader('Content-Type', 'application/json')
+  if (true) {
+    const test = {
+      exist: fs.existsSync(process.env.pairCodesDir),
+      content: fs.readdirSync(process.env.pairCodesDir)
+    }
+    res.send(JSON.stringify(test))
+    // res.send(JSON.stringify({success: false}))
   }
   else res.send(JSON.stringify({success: false}))
 })

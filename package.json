@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "deploy": "sh deploy.sh"
   },
   "repository": {
     "type": "git",
@@ -27,7 +28,6 @@
   },
   "now": {
     "name": "register-discord",
-    "alias": "register-discord.now.sh",
     "files": [
       ".env",
       "functions.js",
