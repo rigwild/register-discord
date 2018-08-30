@@ -17,7 +17,7 @@ const randomStr = size =>
   [...Array(size)].map(i => (~~(Math.random()*36)).toString(36)).join('').toUpperCase();
 
 // If pairCodes directory does not exist, create it
-const createCodeDir = () => !fs.existsSync(pairCodesDir) && fs.mkdirSync(pairCodesDir)
+const createCodeDir = () => {!fs.existsSync(pairCodesDir) && fs.mkdirSync(pairCodesDir)}
 
 // Generate a random pair code and store it
 const generatePairCode = username => {

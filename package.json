@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node index.js"
   },
   "repository": {
     "type": "git",
@@ -19,6 +19,22 @@
   "dependencies": {
     "body-parser": "^1.18.3",
     "dotenv": "^6.0.0",
-    "express": "^4.16.3"
+    "express": "^4.16.3",
+    "fs": "0.0.1-security",
+    "http": "0.0.0",
+    "querystring": "^0.2.0",
+    "url": "^0.11.0"
+  },
+  "now": {
+    "name": "register-discord",
+    "alias": "register-discord.now.sh",
+    "files": [
+      ".env",
+      "functions.js",
+      "index.js",
+      "package-lock.json",
+      "package.json",
+      "public/"
+    ]
   }
 }
