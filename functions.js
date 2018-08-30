@@ -97,7 +97,22 @@ const checkMoodleAccount = (username, password) => {
   })
 }
 
+const getDiscord = username => {
+  createMainFiles()
+  const content = JSON.parse(fs.readFileSync(discordLinkFile, 'utf8'))
+  if (content.hasOwnProperty(username))
+    return content[username]
+  return null
+}
+
+const getAllDiscord = () => {
+  createMainFiles()
+  return JSON.parse(fs.readFileSync(discordLinkFile, 'utf8'))
+}
+
 module.exports = {
   checkMoodleAccount,
-  checkPairCode
+  checkPairCode,
+  getDiscord,
+  getAllDiscord
 }

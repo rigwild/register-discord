@@ -40,5 +40,27 @@ app.post('/linkDiscord', (req, res) => {
   else res.send(JSON.stringify({success: false}))
 })
 
+
+app.get('/getDiscord', (req, res) => {
+  res.setHeader('Content-Type', 'application/json')
+  if (req.query.hasOwnProperty('username')) {
+    const data = fn.getDiscord(req.query.username)
+    if (!!data)
+      res.send(JSON.stringify({success: true, data}))
+    else
+      res.send(JSON.stringify({success: false}))
+  }
+  else res.send(JSON.stringify({success: false}))
+})
+
+app.get('/getAllDiscord', (req, res) => {
+  res.setHeader('Content-Type', 'application/json')
+  const data = fn.getAllDiscord()
+  if (!!data)
+    res.send(JSON.stringify({success: true, data}))
+  else
+    res.send(JSON.stringify({success: false}))
+})
+
 app.listen(serverPort, () =>
   console.log(`Server is listening on port ${serverPort}. http://localhost:${serverPort}/`))
