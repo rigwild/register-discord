@@ -1,0 +1,110 @@
+@import url('https://fonts.googleapis.com/css?family=Open+Sans');
+
+* {
+  font-family: 'Open Sans', Helvetica, sans-serif;
+}
+
+body {
+  background-image: url('../img/bg.jpg');
+  overflow: hidden;
+  height: 100vh;
+  padding: 0;
+  margin: 0;
+}
+
+.center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 0;
+  margin: 0;
+}
+
+.container {
+  text-align: center;
+  width: 30%;
+  background-color: #f2f2f2;
+  padding: 20px;
+  border-radius: 5px;
+  box-shadow: 0px 6px 87px 23px rgba(0,0,0,0.26);
+}
+
+input, button {
+  width: 100%;
+  padding: 12px 20px;
+  margin: 8px 0;
+  display: inline-block;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-sizing: border-box;
+  text-align: center;
+}
+
+button {
+  color: white;
+  transition-duration: 0.3s;
+  background-color: cadetblue;
+}
+
+button:hover {
+  background-color: #45a049;
+  cursor: pointer;
+}
+button:disabled {
+  background-color: #cccccc;
+  cursor: default;
+}
+
+.header {
+  border-bottom: 1px solid #cccccc;
+  margin-bottom: 10px;
+}
+.header h1 { margin-bottom: 0; }
+.header h4 { margin-top: 5px; }
+
+#error {
+  font-weight: bold;
+  color: red;
+}
+
+.hidden {
+  display: none;
+}
+
+.github {
+  position: absolute;
+  text-align: center;
+  width: 100%;
+  margin-top: 10px;
+}
+.github a {
+  color: #444444;
+  text-decoration: none;
+}
+.github a:hover { text-decoration: underline; }
+
+@media (max-width: 640px) {
+	* {
+		box-sizing: border-box;
+	}
+	
+	body {
+		width: auto;
+		margin: 0;
+		padding: 0;
+	}
+	
+	img, table, td, blockquote, code, pre, textarea, input, iframe, object, embed, video, .container {
+		width: 100%;
+	}
+	
+	img {
+		height: auto;
+	}
+	
+	textarea, table, td, th, code, pre, samp {
+		hyphens: auto;
+		word-wrap: break-word;
+	}
+}
