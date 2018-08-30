@@ -13,8 +13,8 @@ const apiCall = (apiCallUrl, fetchMethod, fetchArgsObj, fetchHeadersObj) => {
   })
 }
 
-const loginIut = (username, password) => 
-  apiCall('/loginIut', 'POST', {username, password})
+const checkMoodleAccount = (username, password) => 
+  apiCall('/checkMoodleAccount', 'POST', {username, password})
 
 const handleForm = (form, event) => {
   event.preventDefault()
@@ -32,7 +32,7 @@ const handleForm = (form, event) => {
   error.classList.add('hidden')
   button.setAttribute('disabled', 'disabled')
 
-  loginIut(username, password)
+  checkMoodleAccount(username, password)
     .then(res => {
       if (res.success) {
         form.innerHTML = ''

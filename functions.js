@@ -9,30 +9,54 @@ const fs = require('fs')
 
 const moodleUrl = process.env.moodleUrl
 const HTTPUserAgent = process.env.HTTPUserAgent || 'discord-register'
-const pairCodesDir = process.env.pairCodesDir || './pairCodes/'
+const pairCodesFile = `./data/${process.env.pairCodesFile}` || './data/pairCodes.json'
 const pairCodeSize = parseInt(process.env.pairCodeSize) || 6
+const discordLinkFile= `./data/${process.env.discordLinkFile}` || './data/discordLink.json'
 
 // Generate a random string
 const randomStr = size =>
-  [...Array(size)].map(i => (~~(Math.random()*36)).toString(36)).join('').toUpperCase();
+  [...Array(size)].map(i => (~~(Math.random()*36)).toString(36)).join('').toUpperCase()
 
-// If pairCodes directory does not exist, create it
-const createCodeDir = () => {!fs.existsSync(pairCodesDir) && fs.mkdirSync(pairCodesDir)}
+const createMainFiles = () => {
+  if (!fs.existsSync('./data/')) fs.mkdirSync('./data/')
+  if (!fs.existsSync(pairCodesFile)) fs.writeFileSync(pairCodesFile, '[]')
+  if (!fs.existsSync(discordLinkFile)) fs.writeFileSync(discordLinkFile, '{}')
+}
 
-// Generate a random pair code and store it
+// Add a discord link, store only trhe last discord id set
+const addDiscordLink = (username, discordId) => {
+  createMainFiles()
+  let content = JSON.parse(fs.readFileSync(discordLinkFile, 'utf8'))
+  content[username] = discordId
+  fs.writeFileSync(discordLinkFile, JSON.stringify(content))
+}
+
+// Generate a random pair code and store it, store only the last code set
 const generatePairCode = username => {
-  createCodeDir()
-  const path = `${pairCodesDir}${username}.json`
+  createMainFiles()
+  let content = JSON.parse(fs.readFileSync(pairCodesFile, 'utf8'))
   const pairCode = randomStr(pairCodeSize)
-  fs.writeFileSync(path, JSON.stringify(pairCode))
+
+  const index = content.findIndex(x => x.username === username)
+  if (index !== -1) content.splice(index, 1)
+
+  content.push({username, pairCode})
+  fs.writeFileSync(pairCodesFile, JSON.stringify(content))
   return pairCode
 }
 
-// Check if a pair code is valid
-const checkPairCode = (username, pairCode) => {
-  createCodeDir()
-  const path = `${pairCodesDir}${username}.json`
-  return (fs.existsSync(path) && JSON.parse(fs.readFileSync(path, 'utf8')) === pairCode)
+// Check if a pair code is valid, delete code if valid
+const checkPairCode = (pairCode, discordId) => {
+  createMainFiles()
+  let content = JSON.parse(fs.readFileSync(pairCodesFile, 'utf8'))
+  const index = content.findIndex(x => x.pairCode === pairCode)
+  if (index !== -1 && content[index]) {
+    addDiscordLink(content[index].username, discordId)
+    content.splice(index, 1)
+    fs.writeFileSync(pairCodesFile, JSON.stringify(content))
+    return true
+  }
+  return false
 }
 
 // Check moodle credentials

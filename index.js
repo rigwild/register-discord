@@ -14,7 +14,7 @@ const fn = require('./functions.js')
 
 const serverPort = process.env.serverPort || 3000
 
-app.post('/loginIut', (req, res) => {
+app.post('/checkMoodleAccount', (req, res) => {
   res.setHeader('Content-Type', 'application/json')
   if (req.body.hasOwnProperty('username') && req.body.hasOwnProperty('password')) {
     fn.checkMoodleAccount(req.body.username, req.body.password)
@@ -27,15 +27,15 @@ app.post('/loginIut', (req, res) => {
   else res.send(JSON.stringify({success: false}))
 })
 
-app.get('/getDiscord', (req, res) => {
-  // res.setHeader('Content-Type', 'application/json')
-  if (true) {
-    const test = {
-      exist: fs.existsSync(process.env.pairCodesDir),
-      content: fs.readdirSync(process.env.pairCodesDir)
-    }
-    res.send(JSON.stringify(test))
-    // res.send(JSON.stringify({success: false}))
+
+app.post('/linkDiscord', (req, res) => {
+  res.setHeader('Content-Type', 'application/json')
+  if (
+    req.body.hasOwnProperty('discordId') &&
+    req.body.hasOwnProperty('pairCode') &&
+    fn.checkPairCode(req.body.pairCode, req.body.discordId)
+  ) {
+    res.send(JSON.stringify({success: true}))
   }
   else res.send(JSON.stringify({success: false}))
 })
