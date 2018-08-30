@@ -9,15 +9,20 @@ const fs = require('fs')
 
 const moodleUrl = process.env.moodleUrl
 const HTTPUserAgent = process.env.HTTPUserAgent || 'discord-register'
+const pairCodesDir = process.env.pairCodesDir || './pairCodes/'
 const pairCodeSize = parseInt(process.env.pairCodeSize) || 6
 
-
+// Generate a random string
 const randomStr = size =>
-  [...Array(size)].map(i => (~~(Math.random()*36)).toString(36)).join('').toUpperCase()
+  [...Array(size)].map(i => (~~(Math.random()*36)).toString(36)).join('').toUpperCase();
+
+// If pairCodes directory does not exist, create it
+const createCodeDir = () => !fs.existsSync(pairCodesDir) && fs.mkdirSync(pairCodesDir)
 
 // Generate a random pair code and store it
 const generatePairCode = username => {
-  const path = `./pairCodes/${username}.json`
+  createCodeDir()
+  const path = `${pairCodesDir}${username}.json`
   const pairCode = randomStr(pairCodeSize)
   fs.writeFileSync(path, JSON.stringify(pairCode))
   return pairCode
@@ -25,7 +30,8 @@ const generatePairCode = username => {
 
 // Check if a pair code is valid
 const checkPairCode = (username, pairCode) => {
-  const path = `./pairCodes/${username}.json`
+  createCodeDir()
+  const path = `${pairCodesDir}${username}.json`
   return (fs.existsSync(path) && JSON.parse(fs.readFileSync(path, 'utf8')) === pairCode)
 }
 
