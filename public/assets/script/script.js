@@ -13,17 +13,17 @@ const apiCall = (apiCallUrl, fetchMethod, fetchArgsObj, fetchHeadersObj) => {
   })
 }
 
-const checkMoodleAccount = (username, password) => 
-  apiCall('/checkMoodleAccount', 'POST', {username, password})
+const checkMoodleAccount = (moodleLogin, password) => 
+  apiCall('/checkMoodleAccount', 'POST', {moodleLogin, password})
 
 const handleForm = (form, event) => {
   event.preventDefault()
-  const username = form.querySelector('#username').value
+  const moodleLogin = form.querySelector('#moodleLogin').value
   const password = form.querySelector('#password').value
   const error = form.querySelector('#error')
   const button = form.querySelector('#submit')
 
-  if (!username || !password) {
+  if (!moodleLogin || !password) {
     error.classList.remove('hidden')
     error.innerText = 'Tous les champs sont obligatoires.'
     return
@@ -32,7 +32,7 @@ const handleForm = (form, event) => {
   error.classList.add('hidden')
   button.setAttribute('disabled', 'disabled')
 
-  checkMoodleAccount(username, password)
+  checkMoodleAccount(moodleLogin, password)
     .then(res => {
       if (res.success) {
         form.innerHTML = ''

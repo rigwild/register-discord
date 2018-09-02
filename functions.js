@@ -7,71 +7,31 @@ const querystring = require('querystring')
 const url = require('url')
 const fs = require('fs')
 
-const moodleUrl = process.env.moodleUrl
-const HTTPUserAgent = process.env.HTTPUserAgent || 'discord-register'
-const pairCodesFile = `./data/${process.env.pairCodesFile}` || './data/pairCodes.json'
+const { Pool } = require('pg')
+const database = new Pool()
+
+const moodleLoginPageUrl = process.env.moodleLoginPageUrl
+const moodleProfilePageUrl = process.env.moodleProfilePageUrl
+const HTTPUserAgent = 'discord-register'
 const pairCodeSize = parseInt(process.env.pairCodeSize) || 6
-const discordLinkFile= `./data/${process.env.discordLinkFile}` || './data/discordLink.json'
 
 // Generate a random string
 const randomStr = size =>
   [...Array(size)].map(i => (~~(Math.random()*36)).toString(36)).join('').toUpperCase()
 
-const createMainFiles = () => {
-  if (!fs.existsSync('./data/')) fs.mkdirSync('./data/')
-  if (!fs.existsSync(pairCodesFile)) fs.writeFileSync(pairCodesFile, '[]')
-  if (!fs.existsSync(discordLinkFile)) fs.writeFileSync(discordLinkFile, '{}')
-}
-
-// Add a discord link, store only trhe last discord id set
-const addDiscordLink = (username, discordId) => {
-  createMainFiles()
-  let content = JSON.parse(fs.readFileSync(discordLinkFile, 'utf8'))
-  content[username] = discordId
-  fs.writeFileSync(discordLinkFile, JSON.stringify(content))
-}
-
-// Generate a random pair code and store it, store only the last code set
-const generatePairCode = username => {
-  createMainFiles()
-  let content = JSON.parse(fs.readFileSync(pairCodesFile, 'utf8'))
-  const pairCode = randomStr(pairCodeSize)
-
-  const index = content.findIndex(x => x.username === username)
-  if (index !== -1) content.splice(index, 1)
-
-  content.push({username, pairCode})
-  fs.writeFileSync(pairCodesFile, JSON.stringify(content))
-  return pairCode
-}
-
-// Check if a pair code is valid, delete code if valid
-const checkPairCode = (pairCode, discordId) => {
-  createMainFiles()
-  let content = JSON.parse(fs.readFileSync(pairCodesFile, 'utf8'))
-  const index = content.findIndex(x => x.pairCode === pairCode)
-  if (index !== -1 && content[index]) {
-    addDiscordLink(content[index].username, discordId)
-    content.splice(index, 1)
-    fs.writeFileSync(pairCodesFile, JSON.stringify(content))
-    return true
-  }
-  return false
-}
 
 // Check moodle credentials
-const checkMoodleAccount = (username, password) => {
-  const moodleUrlParsed = url.parse(moodleUrl)
-  return new Promise((resolve, reject) => {
+const checkMoodleAccount = (moodleLogin, password) => 
+  new Promise((resolve, reject) => {
     const postData = querystring.stringify({
-      username: username,
+      username: moodleLogin,
       password: password,
       rememberusername: 0
     })
 
-    const options = {
-      hostname: moodleUrlParsed.hostname,
-      path: moodleUrlParsed.path,
+    let options = {
+      hostname: url.parse(moodleLoginPageUrl).hostname,
+      path: url.parse(moodleLoginPageUrl).path,
       port: 80,
       method: 'POST',
       headers: {
@@ -82,37 +42,106 @@ const checkMoodleAccount = (username, password) => {
       }
     }
 
+    // Check the login
     const req = http.request(options, response => {
-      const result = {}
-      result.success = false
-      if (!!response.headers["set-cookie"].find(x => x.includes('expires'))) {
-        result.success = true
-        result.pairCode = generatePairCode(username)
+      if (response.headers['set-cookie'].find(x => x.includes('expires'))) {
+
+        // Login valid, we fetch the user's full name
+        options = {
+          hostname: url.parse(moodleProfilePageUrl).hostname,
+          path: url.parse(moodleProfilePageUrl).path,
+          port: 80,
+          method: 'GET',
+          headers: {
+            'Cookie': response.headers['set-cookie'][1] + ';',
+            'User-Agent': HTTPUserAgent,
+            'Content-Encoding': 'gzip, deflate',
+            'Content-Length': Buffer.byteLength(postData),
+          }
+        }
+        const req2 = http.request(options, response2 => {
+          let data = ''
+          // We can check on each chunk because the data is at the top of the page.
+          // If it works we can close the request before it ends i.e. save some time
+          response2.on('data', chunk => {
+            const nameMatch = chunk.toString().match(/\<title\>(.*?) (.*?)\: Profil public\<\/title\>/)
+            if (nameMatch && nameMatch.length >= 3) {
+              resolve([moodleLogin, nameMatch[1].toLowerCase(), nameMatch[2].toLowerCase()])
+              req2.end()
+            }
+            else data += chunk
+          });
+        
+          response2.on('end', () => {
+            const nameMatch = data.match(/\<title\>(.*?) (.*?)\: Profil public\<\/title\>/)
+            if (nameMatch && nameMatch.length >= 3)
+              resolve([moodleLogin, nameMatch[1].toLowerCase(), nameMatch[2].toLowerCase()])
+            else reject()
+          });
+        }).on('error', reject)
+      
+        req2.end()
       }
-      resolve(result)
+      else reject()
     }).on('error', reject)
 
     req.write(postData)
     req.end()
   })
+
+// Generate a random pair code and store it, store only the last pair code
+const generatePairCode = async (moodleLogin, moodleFirstName, moodleLastName) => {
+  const pairCode = randomStr(pairCodeSize)
+  
+  // Delete the last pairCode from this user
+  await database.query(`DELETE FROM discord_pair_code WHERE moodle_login = $1`, [moodleLogin])
+
+  // Add the new code in DB
+  const query = `INSERT INTO discord_pair_code (moodle_login, moodle_firstname, moodle_lastname, pair_code)
+  VALUES ($1, $2, $3, $4)`
+  await database.query(query, [moodleLogin, moodleFirstName, moodleLastName, pairCode])
+  
+  return pairCode
 }
 
-const getDiscord = username => {
-  createMainFiles()
-  const content = JSON.parse(fs.readFileSync(discordLinkFile, 'utf8'))
-  if (content.hasOwnProperty(username))
-    return content[username]
-  return null
+// Check if a pair code is valid
+const checkPairCode = async (pairCode) => {
+  let query = 'SELECT pair_code FROM discord_pair_code WHERE pair_code = $1'
+  const res = await database.query(query, [pairCode])
+  return (res.rowCount > 0)
 }
 
-const getAllDiscord = () => {
-  createMainFiles()
-  return JSON.parse(fs.readFileSync(discordLinkFile, 'utf8'))
+// Add a discord link, store only one data for the user
+const addDiscordLink = async (pairCode, discordId) => {
+  // Get the data from the code tuple
+  let query = `SELECT moodle_login, moodle_firstname, moodle_lastname FROM discord_pair_code
+  WHERE pair_code = $1`
+  const res = await database.query(query, [pairCode])
+
+  if (res.rowCount > 0) {
+    const data = {
+      moodleLogin: res.rows[0]['moodle_login'],
+      moodleFirstName: res.rows[0]['moodle_firstname'],
+      moodleLastName: res.rows[0]['moodle_lastname']
+    }
+    // Remove the last data backed up
+    await database.query('DELETE FROM discord_user WHERE moodle_login = $1', [data.moodleLogin])
+
+    // Add the new data
+    query = `INSERT INTO discord_user (moodle_login, moodle_firstname, moodle_lastname, discord_id)
+    VALUES ($1, $2, $3, $4)`
+    return database.query(query, [data.moodleLogin, data.moodleFirstName, data.moodleLastName, discordId])
+  }
 }
+
+// Delete a pair code from DB
+const delPairCode = pairCode =>
+  database.query('DELETE FROM discord_pair_code WHERE pair_code = $1', [pairCode])
 
 module.exports = {
   checkMoodleAccount,
+  generatePairCode,
   checkPairCode,
-  getDiscord,
-  getAllDiscord
+  delPairCode,
+  addDiscordLink
 }
