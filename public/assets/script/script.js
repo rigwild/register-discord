@@ -1,5 +1,13 @@
-const apiCall = (apiCallUrl, fetchMethod, fetchArgsObj, fetchHeadersObj) => {
-  return new Promise((resolve, reject) => {
+var gcaptchaWidgetId1
+var gcaptchaCallback = () => {
+  gcaptchaWidgetId1 = grecaptcha.render('gcaptchaWidgetId1', {
+    'sitekey' : '6Ldc_G0UAAAAAH3GUU9o2ZhL3Mf5t9c9jxUXXH2s', // Your reCaptcha Public Key
+    'theme' : 'light'
+  })
+}
+    
+const apiCall = (apiCallUrl, fetchMethod, fetchArgsObj, fetchHeadersObj) =>
+  new Promise((resolve, reject) => {
     const options = {
       method: fetchMethod || 'GET',
       body: fetchArgsObj ? JSON.stringify(fetchArgsObj) : {},
@@ -11,12 +19,15 @@ const apiCall = (apiCallUrl, fetchMethod, fetchArgsObj, fetchHeadersObj) => {
       .then(resolve)
       .catch(reject)
   })
-}
 
 const checkMoodleAccount = (moodleLogin, password) => 
-  apiCall('/checkMoodleAccount', 'POST', {moodleLogin, password})
+  apiCall('/checkMoodleAccount', 'POST', {
+    moodleLogin,
+    password,
+    gcaptchaReponse: grecaptcha.getResponse(gcaptchaWidgetId1)
+  })
 
-const handleForm = (form, event) => {
+const handleForm = (form, event, gcaptchaReponse) => {
   event.preventDefault()
   const moodleLogin = form.querySelector('#moodleLogin').value
   const password = form.querySelector('#password').value
@@ -32,9 +43,9 @@ const handleForm = (form, event) => {
   error.classList.add('hidden')
   button.setAttribute('disabled', 'disabled')
 
-  checkMoodleAccount(moodleLogin, password)
+  checkMoodleAccount(moodleLogin, password, gcaptchaReponse)
     .then(res => {
-      if (res.success) {
+      if (res && res.success) {
         form.innerHTML = ''
 
         const d = document
@@ -60,8 +71,9 @@ const handleForm = (form, event) => {
       }
       else {
         error.classList.remove('hidden')
-        error.innerText = `Nom d'utilisateur ou mot de passe incorrect.`
+        error.innerText = res.hasOwnProperty('msg') ? res.msg : ''
         button.removeAttribute('disabled')
+        grecaptcha.reset()
       }
     })
     .catch(console.error)

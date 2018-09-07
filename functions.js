@@ -3,22 +3,54 @@
 require('dotenv').config()
 
 const http = require('http')
+const https = require('https')
 const querystring = require('querystring')
 const url = require('url')
-const fs = require('fs')
 
 const { Pool } = require('pg')
 const database = new Pool()
 
 const moodleLoginPageUrl = process.env.moodleLoginPageUrl
 const moodleProfilePageUrl = process.env.moodleProfilePageUrl
+
 const HTTPUserAgent = 'discord-register'
 const pairCodeSize = parseInt(process.env.pairCodeSize) || 6
+
+const recaptchaPrivateKey = process.env.recaptchaPrivateKey
 
 // Generate a random string
 const randomStr = size =>
   [...Array(size)].map(i => (~~(Math.random()*36)).toString(36)).join('').toUpperCase()
 
+// Validate reCaptcha
+const checkRecaptcha = gcaptchaReponse =>
+  new Promise((resolve, reject) => {
+    const postData = querystring.stringify({
+      secret: recaptchaPrivateKey,
+      response: gcaptchaReponse
+    })
+
+    const options = {
+      hostname: url.parse('https://www.google.com/recaptcha/api/siteverify').hostname,
+      path: url.parse('https://www.google.com/recaptcha/api/siteverify').path,
+      port: 443,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+    }
+
+    let req = https.request(options, response => {
+      let data = ''
+      response.on('data', chunk => data += chunk)
+    
+      response.on('end', () => {
+        data = JSON.parse(data)
+        resolve(data.success)
+      })
+    }).on('error', e => reject(e))
+
+    req.write(postData)
+    req.end()
+  })
 
 // Check moodle credentials
 const checkMoodleAccount = (moodleLogin, password) => 
@@ -76,14 +108,14 @@ const checkMoodleAccount = (moodleLogin, password) =>
             const nameMatch = data.match(/\<title\>(.*?) (.*?)\: Profil public\<\/title\>/)
             if (nameMatch && nameMatch.length >= 3)
               resolve([moodleLogin, nameMatch[1].toLowerCase(), nameMatch[2].toLowerCase()])
-            else reject()
+            else resolve(false)
           });
-        }).on('error', reject)
+        }).on('error', e => reject(e))
       
         req2.end()
       }
-      else reject()
-    }).on('error', reject)
+      else resolve(false)
+    }).on('error', e => reject(e))
 
     req.write(postData)
     req.end()
@@ -138,7 +170,9 @@ const addDiscordLink = async (pairCode, discordId) => {
 const delPairCode = pairCode =>
   database.query('DELETE FROM discord_pair_code WHERE pair_code = $1', [pairCode])
 
+
 module.exports = {
+  checkRecaptcha,
   checkMoodleAccount,
   generatePairCode,
   checkPairCode,

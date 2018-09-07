@@ -1,5 +1,5 @@
 CREATE TABLE "discord_pair_code" (
-  "id_pair_code" serial NOT NULL,
+  "id_pair_code" serial NOT NULL PRIMARY KEY,
   "pair_code" character varying(50),
   "moodle_login" character varying(100),
   "moodle_firstname" character varying(50),
@@ -7,7 +7,7 @@ CREATE TABLE "discord_pair_code" (
 );
 
 CREATE TABLE "discord_user" (
-  "id_discord_user" serial NOT NULL,
+  "id_discord_user" serial NOT NULL PRIMARY KEY,
   "moodle_login" character varying(100),
   "moodle_firstname" character varying(50),
   "moodle_lastname" character varying(50),

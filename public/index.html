@@ -36,17 +36,21 @@
       <form>
         <input type="text" id="moodleLogin" placeholder="Nom d'utilisateur">
         <input type="password" id="password" placeholder="Mot de passe">
+
+        <div class="center" id="gcaptchaWidgetId1"></div>
+
         <button type="submit" id="submit">Se connecter</button>
         <p id="error" class="hidden">Tous les champs sont obligatoires.</p>
       </form>
     </div>
   </div>
   
+  <script src="https://www.google.com/recaptcha/api.js?onload=gcaptchaCallback&render=explicit" async defer></script>
   <script src="assets/script/script.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       const form = document.querySelector('form')
-      form.addEventListener('submit', e => handleForm(form, event))
+      form.addEventListener('submit', e => handleForm(form, e))
     })
   </script>
 </body>
